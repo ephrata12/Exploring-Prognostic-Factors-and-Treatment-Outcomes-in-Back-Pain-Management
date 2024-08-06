@@ -1,0 +1,192 @@
+---
+title: "Exploring Prognostic Factors and Treatment Outcomes in Back Pain Management"
+name: "Ephrata Getachew"
+date: "2024-03-28"
+output:
+  pdf_document: default
+  html_document: default
+  fig_caption: yes
+---
+
+
+### INTRODUCTION & MOTIVATION:
+
+Back pain is a prevalent health issue affecting millions worldwide, often leading to decreased quality of life and significant healthcare costs. Understanding the effectiveness of treatments for back pain is crucial for improving patient outcomes and optimizing healthcare resources. This project aims to investigate treatment outcomes in back pain patients using categorical data analysis techniques. Numerous studies have investigated prognostic factors for back pain outcomes, including the duration of previous episodes, changes in pain intensity, and anatomical factors such as lordosis. Anderson's (1984) study stands out as a seminal work in this field, providing valuable insights into the relationship between these variables and the progression of back pain.
+
+
+**Dataset:**
+
+The dataset used in this project originates from a study conducted by Anderson in 1984 and and is available in the R package `gnm.` The data includes information on 101 individuals and consists of four variables: the length of previous back pain episodes (x1), changes in pain intensity (x2), lordosis (x3), and the progression of pain after treatment. The dataset provides valuable insights into the prognostic factors associated with back pain and the effectiveness of treatments. 
+
+Potential biases in the dataset may arise from factors such as sample selection and measurement methods. For example, if the sample primarily consists of patients from a specific demographic or healthcare setting, the findings may not be generalizable to the broader population of individuals with back pain. Additionally, subjective assessments of pain and treatment outcomes could introduce bias, as perceptions of improvement may vary among individuals.
+
+`Citation:`
+
+Anderson, J. A. (1984). Regression and Ordered Categorical Variables. Journal of the Royal Statistical Society. Series B (Methodological), 46(1), 1-30.
+
+
+### Variables:
+
+1. **x1**: is independent variable represents length of previous attack, providing insight into the duration of past episodes. It is a categorical variable measured on two ordinal levels: "S" for Short and "L"  for Long.    
+
+1. **x2**: is independent variable represents pain change, indicating the direction of change in pain intensity during the treatment period. It is a categorical variable measured on three ordinal levels: "B" for getting better, "S" for remaining the same, and "W" for worsening.
+
+2. **x3**: is independent variable, represents to lordosis, which denotes the curvature of the spine and is recognized as an anatomical factor influencing back pain. This categorical variable indicates the presence or absence of lordosis and is measured on two ordinal levels: "AD" for absent or decreasing lordosis, and "PI" for present or increasing lordosis.
+     
+3. **Pain**: is a dependent variable characterizes the progression of pain following the treatment period. It is a categorical variable measured on six ordered categories: Worse, Same, Slight Improvement, Moderate Improvement, Marked Improvement, and Complete Relief.
+
+**Research Questions:**
+
+1) Investigate the association between poor prognostic conditions, defined by the status of three prognostic variables (x1, x2, x3), and the progression of pain levels after treatment in back pain patients.
+
+**Importance:**
+
+Witnessing the struggles of friends and family dealing with back pain has motivated me to find better solutions, that truly make a difference in their lives. Understanding the relationship between poor prognostic conditions and treatment outcomes is crucial for optimizing treatment strategies and improving patient outcomes in back pain management. By identifying factors that contribute to treatment effectiveness, this analysis can inform clinical decision-making and enhance the quality of care provided to back pain patients. Additionally, gaining insights into the prognostic factors associated with treatment response contributes to advancing knowledge in the field of back pain management, potentially leading to the development of more personalized and effective interventions.
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(gnm)
+library(vcd)
+library(vcdExtra)
+options(digits=3)
+```
+
+**Preliminary Data Analysis**
+
+```{r, echo=FALSE}
+data("backPain")
+
+backPain$x1 <- factor(backPain$x1)
+levels(backPain$x1) <- c("Short", "Long")
+
+backPain$x2 <- factor(backPain$x2)
+levels(backPain$x2) <- c("Getting Better", "Remaining the Same", "Worsening")
+
+backPain$x3 <- factor(backPain$x3)
+levels(backPain$x3) <- c("AD", "PI")
+```
+
+We created a new variable called Z in the `backPain` dataset, which represents the number of poor prognostic conditions for each patient defined by status of three prognostic variables x1, x2, x3.
+ 
+```{r}
+backPain$Z <- ifelse(backPain$x1 == "Long", 1, 0) + 
+  ifelse(backPain$x2 == "Worsening", 1, 0) + ifelse(backPain$x3 == "PI", 1, 0)
+z.table <- table(backPain$Z)
+```
+
+Refering to (Appendix [ Bar plot](#b){#b-ref}) shows that 22 individuals do not exhibit any of the specified conditions related to back pain (Z = 0), 38 individuals exhibit one of the following conditions: long previous back pain episodes, worsening pain intensity, or the presence of lordosis (Z = 1), 34 individuals exhibit a combination of two of these conditions (Z = 2), and 7 individuals exhibit all three conditions simultaneously (Z = 3). 
+
+```{r, echo=FALSE, warning=FALSE}
+z.fitb <- goodfit(z.table, type = "binomial", par = list(size =3))
+z.fitp <- goodfit(z.table, type = "poisson")
+```
+
+We fitted binomial and poisson distributions to the variable Z to assess the goodness of fit.
+
+```{r,echo=FALSE, fig.width=3.5, fig.height=4}
+plot(z.fitb, type = "hanging", shade = TRUE, main = "Binomial Model Fit" )
+plot(z.fitp, type = "hanging", shade = TRUE, main = "Poisson Model Fit")
+```
+Looking at (Appendix [Generalized distribution plot](#d){#d-ref}), the fitted line for binomial model does not deviate much from the CI each data point  compare to the poisson model. In the hanging rootogram plot, the Pearson residuals for the binomial model are within a small bound(-0.160 and 0.496), no colors are present and the variance is random across frequencies but for the poisson binomial the Pearson residuals vary between -1.759 and -1.254 (Appendix [ Z fit](#z){#z-ref}) and there appears to be color at 2, indicating larger deviations compared to the binomial distribution. 
+
+Also, the p-value for the binomial distribution is (0.568), indicating that there is no significant evidence against the null hypothesis that the observed data fits binomial distribution. The p-value for poisson distribution is 0.000481, suggesting evidence against the null hypothesis that the observed data fits Poisson distribution. Thus the binomial distribution appears to provide a better fit to the data compared to the Poisson distribution.
+
+```{r,echo=FALSE}
+summary(z.fitb)
+summary(z.fitp)
+```
+
+We explored the association between `Z` with the variable `Pain` to address our research questions regarding treatment outcomes in back pain patients. 
+
+```{r, echo=FALSE}
+z.contingency <- table(backPain$Z, backPain$pain)
+z.margin <- margin.table(z.contingency, 2:1)
+```
+
+```{r, ,echo=FALSE}
+#I couldn't plot a tile plot because of an error and you suggested not to do it and leave a note in the code.
+#tile(t(z.contingency), tile_type = "height", shade = TRUE)
+```
+
+```{r, ,echo=FALSE}
+levels(backPain$pain) <- c("Worse", "Same", "Sl.I", "Mo.I", " Ma.I", "C")
+z.contingency <- table(backPain$Z, backPain$pain)
+z.margin <- margin.table(z.contingency, 2:1)
+backPain$x4 <- factor(backPain$x2)
+assoc(t(z.margin), shade = TRUE, main = "Association between Z and Pain Progression") 
+```
+Looking at the association plot, for individuals that do not exhibit any of the specified conditions related to back pain (Z = 0), they tend to have complete relief higher than the others and for individuals exhibit all three conditions simultaneously (Z = 3) they tend to have worse pain than others. Referring to (Appendix [Spineplot](#sp){#sp-ref}) we can clearly see that as the conditions related to back pain (Z) increases the pain level increase as well. So Z and pain level are not independent. 
+
+The Pearson's chi-squared test revealed a significant association between the number of poor prognostic conditions and the progression of pain, with a chi-squared statistic of 36 and a p-value of 0.002, indicating that pain progression varies significantly across different levels of poor prognostic conditions. (Appendix [Chi-squared test](#xch){#xch-ref}) Additionally, the Cramer's V value of 0.343 indicates a moderate association between these variables, suggesting that the severity of prognostic factors moderately influences the progression of pain among back pain patients. (Appendix [Cramer's V](#xcr){#xcr-ref}). This is also supported by CMH test as significant results were obtained across multiple hypotheses, including nonzero correlation, row mean scores differing, and column mean scores differing. (Appendix [CMH test](#xcm){#xcm-ref})
+
+
+In summary, our analysis highlights a significant association between poor prognostic conditions and the progression of pain levels among back pain patients. These findings suggest that considering prognostic factors is crucial in optimizing treatment strategies and enhancing patient outcomes in back pain management. By understanding the impact of prognostic conditions on pain progression, healthcare professionals can tailor interventions more effectively, leading to improved quality of care and better overall outcomes for back pain patients.
+
+
+\newpage
+
+**Apendix**
+
+### Bar plot {#b}
+
+```{r, echo=FALSE, fig.cap="Distribution of Poor Prognostic Conditions"}
+barplot(z.table, main = "Distribution of Poor Prognostic Conditions", xlab = "Pain Change", ylab = "Frequency")
+```
+
+### Z fit {#z}
+
+Z fit [(Return To Report)](#z-ref)
+
+```{r, echo=FALSE}
+(z.fitb <- goodfit(z.table, type = "binomial", par = list(size =3)))
+(z.fitp <- goodfit(z.table, type = "poisson"))
+```
+
+### chi-squared test {#xch}
+
+Chi-squared test [(Return To Report)](#xch-ref)
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+(z.chi <- chisq.test(z.contingency))
+```
+
+
+###  CMH test {#xcm}
+
+CMH test [(Return To Report)](#xcm-ref)
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+CMHtest(z.contingency)
+```
+
+
+###  Cramer's V {#xcr}
+
+Cramer's V [(Return To Report)](#xcr-ref)
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+(z.assoc <- assocstats(z.contingency))
+```
+
+### Spineplot {#sp}
+
+Spineplot [(Return To Report)](#sp-ref)
+
+```{r, echo=FALSE, fig.height=6}
+spineplot(aperm(z.margin, c(2,1)), main = "Spineplot of Poor Prognostic Conditions and Pain Progression")
+```
+
+
+### Generalized distribution plot {#d}
+
+Generalized distribution plot [(Return To Report)](#d-ref)
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE, fig.cap="Binomialness plot", fig.height=4.1, fig.width=6}
+z.table |>
+  distplot(type = "binomial", size = 3)
+```
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE, fig.cap="Poissoness plot", fig.height=4.1, fig.width=6}
+z.table |>
+  distplot(type = "poisson")
+```
