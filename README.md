@@ -10,5 +10,5 @@ The dataset, sourced from the R package `gnm`, includes 101 individuals and four
 - **x3**: Spinal lordosis (Absent/Present)
 - **Pain**: Pain progression after treatment (6 ordered categories: Worse to Complete Relief)
 
-## Citation
+## Reference
 Anderson, J. A. (1984). Regression and Ordered Categorical Variables. *Journal of the Royal Statistical Society. Series B (Methodological)*, 46(1), 1-30.
